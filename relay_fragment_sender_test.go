@@ -11,6 +11,8 @@ import (
 	"github.com/uber/tchannel-go/typed"
 )
 
+var _ frameReceiver = (*dummyFrameReceiver)(nil)
+
 type dummyFrameReceiver struct {
 	t                *testing.T
 	retSent          bool
@@ -18,11 +20,11 @@ type dummyFrameReceiver struct {
 	wantPayload      []byte
 }
 
-func (d *dummyFrameReceiver) Receive(f *Frame, fType frameType) (sent bool, failureReason string) {
+func (d *dummyFrameReceiver) Receive(f *Frame, fType frameType) (sent bool, failureReason string, dropped bool) {
 	if d.wantPayload != nil {
 		assert.Equal(d.t, d.wantPayload, f.SizedPayload())
 	}
-	return d.retSent, d.retFailureReason
+	return d.retSent, d.retFailureReason, false
 }
 
 type noopSentReporter struct{}
