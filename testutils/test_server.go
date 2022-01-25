@@ -161,15 +161,20 @@ func WithTestServer(t testing.TB, chanOpts *ChannelOpts, f func(testing.TB, *Tes
 	chanOptsCopy := chanOpts.Copy()
 	runTest(t, chanOptsCopy)
 
-	if chanOptsCopy.CheckFrameLeaks {
+	if chanOptsCopy.CheckFramePooling {
 		runSubTest(t, "check frame leaks", func(t testing.TB) {
-			pool := tchannel.NewRecordingFramePool()
+			pool := tchannel.NewCheckedFramePoolForTest()
 
 			runTest(t, chanOpts.Copy().SetFramePool(pool))
 
-			if unreleasedCount, isEmpty := pool.CheckEmpty(); isEmpty != "" || unreleasedCount > 0 {
+			result := pool.CheckEmpty()
+			if len(result.UnexpectedAllocations) > 0 {
 				t.Errorf("Frame pool has %v unreleased frames, errors:\n%v\n",
-					unreleasedCount, isEmpty)
+					len(result.UnexpectedAllocations), strings.Join(result.UnexpectedAllocations, "\n"))
+			}
+			if len(result.BadReleases) > 0 {
+				t.Errorf("Frame pool has %v bad releases, errors:\n%v\n",
+					len(result.BadReleases), strings.Join(result.BadReleases, "\n"))
 			}
 		})
 	}
