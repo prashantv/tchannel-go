@@ -10,6 +10,7 @@ func TestCheckedFramePoolForTest(t *testing.T) {
 	tests := []struct {
 		msg                string
 		operations         func(pool *CheckedFramePoolForTest)
+		wantHasIssues      bool
 		wantBadAllocations int
 		wantBadReleases    int
 	}{
@@ -31,8 +32,8 @@ func TestCheckedFramePoolForTest(t *testing.T) {
 					_ = pool.Get()
 				}
 			},
+			wantHasIssues:      true,
 			wantBadAllocations: 10,
-			wantBadReleases:    0,
 		},
 		{
 			msg: "frames are double released",
@@ -44,8 +45,8 @@ func TestCheckedFramePoolForTest(t *testing.T) {
 				pool.Release(f)
 				pool.Release(f)
 			},
-			wantBadAllocations: 0,
-			wantBadReleases:    1,
+			wantHasIssues:   true,
+			wantBadReleases: 1,
 		},
 	}
 
@@ -56,6 +57,7 @@ func TestCheckedFramePoolForTest(t *testing.T) {
 			tt.operations(pool)
 			results := pool.CheckEmpty()
 
+			assert.Equal(t, tt.wantHasIssues, results.HasIssues(), "Unexpected HasIssues() state")
 			assert.Equal(t, tt.wantBadAllocations, len(results.UnexpectedAllocations), "Unexpected allocs")
 			assert.Equal(t, tt.wantBadReleases, len(results.BadReleases), "Unexpected bad releases")
 		})
